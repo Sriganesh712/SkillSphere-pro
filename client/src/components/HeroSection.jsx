@@ -36,7 +36,7 @@ export default function HeroSection() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6, duration: 0.8 }}
       >
-        <button className="bg-indigo-600 text-white px-6 py-3 rounded-full text-sm font-semibold hover:bg-indigo-500 transition duration-300">
+        <button onClick={handleBrowseCourses} className="bg-indigo-600 text-white px-6 py-3 rounded-full text-sm font-semibold hover:bg-indigo-500 transition duration-300">
           Get Started
         </button>
         <button
