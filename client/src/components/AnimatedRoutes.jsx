@@ -6,7 +6,7 @@ import Home from "../pages/Home";
 import Courses from "../pages/Courses";
 import ProtectedRoute from "./ProtectedRoute"; 
 import NotFound from "../pages/NotFound";
-import AdminPanel from "../pages/adminpanel";
+import AdminPanel from "../pages/AdminPanel";
 
 export default function AnimatedRoutes() {
   const location = useLocation();
