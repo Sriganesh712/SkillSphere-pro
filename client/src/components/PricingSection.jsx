@@ -100,12 +100,12 @@ export default function PricingSection() {
         <Switch
           checked={isYearly}
           onChange={setIsYearly}
-          className={`$${
+          className={`${
             isYearly ? "bg-indigo-600" : "bg-gray-300"
           } relative inline-flex h-6 w-11 items-center rounded-full transition-all`}
         >
           <span
-            className={`$${
+            className={`${
               isYearly ? "translate-x-6" : "translate-x-1"
             } inline-block h-4 w-4 transform rounded-full bg-white transition`}
           />
@@ -114,7 +114,7 @@ export default function PricingSection() {
       </div>
 
       <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           {plans[category].map((plan) => (
             <motion.div
               key={plan.name}
