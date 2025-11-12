@@ -6,6 +6,7 @@ import Home from "../pages/Home";
 import Courses from "../pages/Courses";
 import ProtectedRoute from "./ProtectedRoute"; 
 import NotFound from "../pages/NotFound";
+import AdminPanel from "../pages/adminpanel";
 
 export default function AnimatedRoutes() {
   const location = useLocation();
@@ -23,6 +24,14 @@ export default function AnimatedRoutes() {
           }
         />
 
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="*" element={<NotFound />} />
