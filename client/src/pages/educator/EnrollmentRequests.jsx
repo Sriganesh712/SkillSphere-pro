@@ -9,6 +9,7 @@ import {
   doc,
 } from "firebase/firestore";
 import Loader from "../../components/Loader";
+import { addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function EnrollmentRequests() {
   const [loading, setLoading] = useState(true);
@@ -39,10 +40,31 @@ export default function EnrollmentRequests() {
     loadRequests();
   }, []);
 
-  const updateStatus = async (id, status) => {
-    await updateDoc(doc(db, "enrollments", id), { status });
-    setRequests((prev) => prev.filter((r) => r.id !== id));
-  };
+    const updateStatus = async (enrollId, status, enroll) => {
+    await updateDoc(doc(db, "enrollments", enrollId), { status });
+
+    // 🔔 Create notification for learner
+    await addDoc(collection(db, "notifications"), {
+        userId: enroll.learnerId,
+        title:
+        status === "approved"
+            ? "Enrollment Approved 🎉"
+            : "Enrollment Rejected",
+        message:
+        status === "approved"
+            ? `You have been approved for "${enroll.courseTitle}".`
+            : `Your enrollment request for "${enroll.courseTitle}" was rejected.`,
+        link:
+        status === "approved"
+            ? `/course/${enroll.courseId}`
+            : "/my-enrollments",
+        read: false,
+        createdAt: serverTimestamp(),
+    });
+
+    setRequests((prev) => prev.filter((r) => r.id !== enrollId));
+    };
+
 
   if (loading) return <Loader />;
 
@@ -73,14 +95,14 @@ export default function EnrollmentRequests() {
 
             <div className="flex gap-2">
               <button
-                onClick={() => updateStatus(req.id, "approved")}
+                onClick={() => updateStatus(req.id, "approved", req)}
                 className="bg-green-500 text-white px-3 py-1 rounded"
               >
                 Approve
               </button>
 
               <button
-                onClick={() => updateStatus(req.id, "rejected")}
+                onClick={() => updateStatus(req.id, "rejected", req)}
                 className="bg-red-500 text-white px-3 py-1 rounded"
               >
                 Reject

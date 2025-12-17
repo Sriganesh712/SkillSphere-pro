@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { auth, db } from "../../firebase";
 import {
   doc,
+  setDoc,
   getDoc,
   collection,
   getDocs,
@@ -15,10 +16,12 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import Loader from "../../components/Loader";
+import { updateDoc, arrayUnion } from "firebase/firestore";
 
 export default function CourseWatch() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const [completedLessons, setCompletedLessons] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState(null);
@@ -54,7 +57,8 @@ export default function CourseWatch() {
           query(
             collection(db, "enrollments"),
             where("courseId", "==", courseId),
-            where("learnerId", "==", user.uid)
+            where("learnerId", "==", user.uid),
+
           )
         );
 
@@ -100,15 +104,24 @@ export default function CourseWatch() {
     const user = auth.currentUser;
     if (!user || !course) return;
 
-    const ref = await addDoc(collection(db, "enrollments"), {
-      courseId,
-      courseTitle: course.title,
-      learnerId: user.uid,
-      learnerName: user.displayName || "Learner",
-      educatorId: course.educatorId,
-      status: "pending",
-      createdAt: serverTimestamp(),
+    const enrollId = `${courseId}_${user.uid}`;
+
+    await setDoc(doc(db, "enrollments", enrollId), {
+    courseId,
+    courseTitle: course.title,
+    learnerId: user.uid,
+    learnerName: user.displayName || "Learner",
+    educatorId: course.educatorId,
+    status: "pending",
+    createdAt: serverTimestamp(),
     });
+    // 🔹 Load progress
+    const progressRef = doc(db, "progress", `${courseId}_${user.uid}`);
+    const progressSnap = await getDoc(progressRef);
+
+    if (progressSnap.exists()) {
+    setCompletedLessons(progressSnap.data().completedLessons || []);
+    }
 
     setEnrollmentStatus("pending");
     setEnrollmentDocId(ref.id);
@@ -123,6 +136,27 @@ export default function CourseWatch() {
     setEnrollmentStatus(null);
     setEnrollmentDocId(null);
   };
+const markCompleted = async (lessonId) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const progressRef = doc(db, "progress", `${courseId}_${user.uid}`);
+
+  await setDoc(
+    progressRef,
+    {
+      courseId,
+      learnerId: user.uid,
+      completedLessons: arrayUnion(lessonId),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  setCompletedLessons((prev) =>
+    prev.includes(lessonId) ? prev : [...prev, lessonId]
+  );
+};
 
   if (loading) return <Loader />;
 
@@ -173,7 +207,9 @@ export default function CourseWatch() {
                 key={activeLesson.id}
                 controls
                 className="w-full rounded-lg shadow"
-              >
+                onEnded={() => markCompleted(activeLesson.id)}
+                >
+
                 <source
                   src={activeLesson.videoUrl}
                   type="video/mp4"
@@ -203,16 +239,23 @@ export default function CourseWatch() {
             <ul className="space-y-2">
               {lessons.map((lesson) => (
                 <li
-                  key={lesson.id}
-                  onClick={() => setActiveLesson(lesson)}
-                  className={`cursor-pointer p-2 rounded ${
+                key={lesson.id}
+                onClick={() => setActiveLesson(lesson)}
+                className={`cursor-pointer p-2 rounded flex justify-between items-center ${
                     activeLesson?.id === lesson.id
-                      ? "bg-indigo-100 text-indigo-700"
-                      : "hover:bg-gray-100"
-                  }`}
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "hover:bg-gray-100"
+                }`}
                 >
-                  {lesson.order}. {lesson.title}
+                <span>
+                    {lesson.order}. {lesson.title}
+                </span>
+
+                {completedLessons.includes(lesson.id) && (
+                    <span className="text-green-600 text-sm">✔</span>
+                )}
                 </li>
+
               ))}
             </ul>
           </div>

@@ -27,6 +27,7 @@ export default function BrowseCourses() {
         const q = query(
           collection(db, "courses"),
           where("status", "==", "published"),
+          orderBy("createdAt", "desc")
         );
 
         const snap = await getDocs(q);

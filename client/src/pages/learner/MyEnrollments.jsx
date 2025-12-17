@@ -9,6 +9,7 @@ import {
   orderBy,
 } from "firebase/firestore";
 import Loader from "../../components/Loader";
+import { addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function MyEnrollments() {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ export default function MyEnrollments() {
       const q = query(
         collection(db, "enrollments"),
         where("learnerId", "==", user.uid),
+        orderBy("createdAt", "desc")
+
       );
 
       const snap = await getDocs(q);

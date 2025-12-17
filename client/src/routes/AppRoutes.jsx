@@ -12,6 +12,8 @@ import CourseWatch from "../pages/learner/CourseWatch";
 import BrowseCourses from "../pages/learner/BrowseCourses";
 import EnrollmentRequests from "../pages/educator/EnrollmentRequests";
 import MyEnrollments from "../pages/learner/MyEnrollments";
+import Notifications from "../pages/learner/Notifications";
+import Profile from "../pages/profile/profile";
 
 export default function AppRoutes() {
   return (
@@ -31,6 +33,8 @@ export default function AppRoutes() {
         <Route path="/my-enrollments" element={<MyEnrollments />} />
         <Route path="*" element={<NotFound />} />
         <Route path="/educator/requests"element={<EnrollmentRequests />}/>
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </>
   );

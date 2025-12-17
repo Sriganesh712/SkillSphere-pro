@@ -3,27 +3,49 @@ import { Link, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { Bell } from "lucide-react";
+import { onSnapshot } from "firebase/firestore";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (!user) {
         setRole(null);
+        setUnreadCount(0);
         setLoading(false);
         return;
       }
 
-      const snap = await getDoc(doc(db, "users", user.uid));
-      setRole(snap.exists() ? snap.data().role : "learner");
-      setLoading(false);
+      // 🔹 Load role once
+      getDoc(doc(db, "users", user.uid)).then((snap) => {
+        setRole(snap.exists() ? snap.data().role : "learner");
+      });
+
+      // 🔔 Realtime unread notifications
+      const notifQuery = query(
+        collection(db, "notifications"),
+        where("userId", "==", user.uid),
+        where("read", "==", false)
+      );
+
+      const unsubscribeNotif = onSnapshot(notifQuery, (snap) => {
+        setUnreadCount(snap.size);
+        setLoading(false);
+      });
+
+      return unsubscribeNotif;
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
+
+
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -77,6 +99,18 @@ export default function Navbar() {
 
           <Link to="/profile" className="hover:text-indigo-600">
             Profile
+          </Link>
+          <Link
+            to="/notifications"
+            className="relative hover:text-indigo-600"
+          >
+            <Bell className="w-5 h-5" />
+
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {unreadCount}
+              </span>
+            )}
           </Link>
 
           <button
