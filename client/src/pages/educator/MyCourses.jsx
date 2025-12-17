@@ -26,7 +26,8 @@ export default function MyCourses() {
 
       const q = query(
         collection(db, "courses"),
-        where("educatorId", "==", user.uid)
+        where("educatorId", "==", user.uid),
+        orderBy("createdAt", "desc")
         );
 
 
