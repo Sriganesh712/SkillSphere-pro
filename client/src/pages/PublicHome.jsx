@@ -7,7 +7,6 @@ import Footer from "../components/Footer";
 import CTABanner from "../components/CTABanner";
 import FAQSection from "../components/FaqSection";
 import AboutSection from "../components/AboutSection";
-import aboutImg from "../assets/Mehra.jpg"; // or .png, .webp
 import PartnersSection from "../components/PartnersSection";
 import IntegrationsSection from "../components/IntegrationsSection";
 import { motion } from "framer-motion";

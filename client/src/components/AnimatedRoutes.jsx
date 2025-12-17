@@ -2,7 +2,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
-import Home from "../pages/Home";
+import Home from "../pages/PublicHome";
 import Courses from "../pages/Courses";
 import ProtectedRoute from "./ProtectedRoute"; 
 import NotFound from "../pages/NotFound";
