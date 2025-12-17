@@ -6,9 +6,11 @@ export default function HeroSection() {
   const navigate = useNavigate(); // ✅
 
   const handleBrowseCourses = () => {
-    navigate("/courses"); // ✅
+    navigate("/courses"); 
   };
-
+  const handleSignup = () => {
+    navigate("/signup"); 
+  };
   return (
     <section className="min-h-[90vh] bg-white flex flex-col items-center justify-center text-center px-6 md:px-20 relative overflow-hidden">
       <motion.h1
@@ -36,7 +38,7 @@ export default function HeroSection() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6, duration: 0.8 }}
       >
-        <button onClick={handleBrowseCourses} className="bg-indigo-600 text-white px-6 py-3 rounded-full text-sm font-semibold hover:bg-indigo-500 transition duration-300">
+        <button onClick={handleSignup} className="bg-indigo-600 text-white px-6 py-3 rounded-full text-sm font-semibold hover:bg-indigo-500 transition duration-300">
           Get Started
         </button>
         <button

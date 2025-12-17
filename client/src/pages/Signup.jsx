@@ -20,7 +20,7 @@ export default function Signup() {
   // ✅ Redirect if already logged in
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) navigate("/");
+      if (user) navigate("/dashboard");
     });
     return unsubscribe;
   }, [navigate]);
@@ -41,28 +41,32 @@ export default function Signup() {
     }
   };
 
+  // ✅ EMAIL SIGNUP (FIXED)
   const handleSignup = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     setLoading(true);
+
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      // Redirect handled by onAuthStateChanged
+      navigate("/complete-profile");
     } catch (error) {
-      console.error("Signup error:", error.code, error.message);
+      console.error("Signup error:", error);
       setErrorMsg(getFriendlyError(error.code));
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ GOOGLE SIGNUP (FIXED)
   const handleGoogleSignup = async () => {
     setErrorMsg("");
     setLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
+      navigate("/complete-profile");
     } catch (error) {
-      console.error("Google signup error:", error.code, error.message);
+      console.error("Google signup error:", error);
       setErrorMsg(getFriendlyError(error.code));
     } finally {
       setLoading(false);
@@ -136,7 +140,6 @@ export default function Signup() {
             />
           </div>
 
-          {/* Error Message */}
           {errorMsg && (
             <p className="text-red-500 text-sm text-center">{errorMsg}</p>
           )}
@@ -144,7 +147,7 @@ export default function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-500 transition disabled:opacity-50"
           >
             {loading ? "Signing up..." : "Sign up"}
           </button>
@@ -153,7 +156,7 @@ export default function Signup() {
             onClick={handleGoogleSignup}
             type="button"
             disabled={loading}
-            className="w-full border border-gray-300 flex justify-center items-center gap-2 py-2 rounded-md hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full border border-gray-300 flex justify-center items-center gap-2 py-2 rounded-md hover:bg-gray-50 transition disabled:opacity-50"
           >
             <FcGoogle className="text-xl" />
             Sign up with Google
