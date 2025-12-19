@@ -11,256 +11,473 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import Loader from "../../components/Loader";
-import { uploadVideoToCloudinary } from "../../utils/cloudinary";
+import {
+  uploadVideoToCloudinary,
+  uploadFileToCloudinary,
+} from "../../utils/cloudinary";
+
+/* ======================================================
+   COURSE MANAGE — EDUCATOR STUDIO (PRO LEVEL)
+====================================================== */
 
 export default function CourseManage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
+  /* ---------------- CORE STATE ---------------- */
   const [loading, setLoading] = useState(true);
-  const [uploadingLessonId, setUploadingLessonId] = useState(null);
   const [course, setCourse] = useState(null);
+  const [activeTab, setActiveTab] = useState("lessons");
+
+  /* ---------------- DATA ---------------- */
   const [lessons, setLessons] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [assignments, setAssignments] = useState([]);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  /* ---------------- FORMS ---------------- */
+  const [lessonForm, setLessonForm] = useState({
+    title: "",
+    description: "",
+  });
 
+  const [assignmentForm, setAssignmentForm] = useState({
+    title: "",
+    description: "",
+    dueDate: "",
+  });
+
+  const [uploadingLessonId, setUploadingLessonId] = useState(null);
+
+  /* ======================================================
+     INITIAL LOAD & AUTH
+  ====================================================== */
   useEffect(() => {
     const init = async () => {
       const user = auth.currentUser;
-      if (!user) {
-        navigate("/login");
-        return;
-      }
+      if (!user) return navigate("/login");
 
-      const courseRef = doc(db, "courses", courseId);
-      const snap = await getDoc(courseRef);
+      const courseSnap = await getDoc(doc(db, "courses", courseId));
+      if (!courseSnap.exists()) return navigate("/educator/my-courses");
 
-      // ❌ Block non-owners
-      if (!snap.exists() || snap.data().educatorId !== user.uid) {
-        navigate("/educator/my-courses");
-        return;
-      }
+      const courseData = courseSnap.data();
+      if (courseData.educatorId !== user.uid)
+        return navigate("/educator/my-courses");
 
-      setCourse({ id: snap.id, ...snap.data() });
-
-      const lessonsSnap = await getDocs(
-        query(
-          collection(db, "courses", courseId, "lessons"),
-          orderBy("order", "asc")
-        )
-      );
-
-      setLessons(
-        lessonsSnap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }))
-      );
-
+      setCourse({ id: courseSnap.id, ...courseData });
+      await reloadAll();
       setLoading(false);
     };
 
     init();
   }, [courseId, navigate]);
 
-  const handleVideoUpload = async (lessonId, file) => {
-    if (!file) return;
-
-    // ✅ Validate file type
-    if (!file.type.startsWith("video/")) {
-      alert("Please upload a valid video file");
-      return;
-    }
-
-    const lesson = lessons.find((l) => l.id === lessonId);
-    if (lesson?.videoUrl) {
-      const confirmReplace = window.confirm(
-        "This lesson already has a video. Replace it?"
+  const reloadAll = async () => {
+    const load = async (path, setter) => {
+      const snap = await getDocs(
+        query(
+          collection(db, "courses", courseId, path),
+          orderBy("createdAt", "asc")
+        )
       );
-      if (!confirmReplace) return;
+      setter(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    };
+
+    await load("lessons", setLessons);
+    await load("materials", setMaterials);
+    await load("assignments", setAssignments);
+  };
+
+  /* ======================================================
+     COURSE CONTROLS
+  ====================================================== */
+  const toggleCourseStatus = async () => {
+    const newStatus = course.status === "published" ? "draft" : "published";
+    await updateDoc(doc(db, "courses", course.id), { status: newStatus });
+    setCourse(prev => ({ ...prev, status: newStatus }));
+  };
+
+  /* ======================================================
+     LESSONS
+  ====================================================== */
+  const createLesson = async () => {
+    if (!lessonForm.title.trim()) return alert("Lesson title required");
+
+    await addDoc(collection(db, "courses", courseId, "lessons"), {
+      title: lessonForm.title,
+      description: lessonForm.description,
+      order: lessons.length + 1,
+      videoUrl: null,
+      createdAt: serverTimestamp(),
+    });
+
+    setLessonForm({ title: "", description: "" });
+    reloadAll();
+  };
+
+  const uploadLessonVideo = async (lessonId, file) => {
+    if (!file || !file.type.startsWith("video/")) {
+      return alert("Please upload a valid video file");
     }
 
     try {
       setUploadingLessonId(lessonId);
-
-      // 1️⃣ Upload to Cloudinary
       const videoUrl = await uploadVideoToCloudinary(file);
-
-      // 2️⃣ Save URL to Firestore
-      const lessonRef = doc(
-        db,
-        "courses",
-        courseId,
-        "lessons",
-        lessonId
+      await updateDoc(
+        doc(db, "courses", courseId, "lessons", lessonId),
+        { videoUrl }
       );
-
-      await updateDoc(lessonRef, { videoUrl });
-
-      // 3️⃣ Update UI
-      setLessons((prev) =>
-        prev.map((l) =>
-          l.id === lessonId ? { ...l, videoUrl } : l
-        )
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Video upload failed");
+      reloadAll();
     } finally {
       setUploadingLessonId(null);
     }
   };
 
-  const addLesson = async (e) => {
-    e.preventDefault();
+  const updateLesson = async (lessonId, field, value) => {
+    await updateDoc(
+      doc(db, "courses", courseId, "lessons", lessonId),
+      { [field]: value }
+    );
+  };
 
-    await addDoc(collection(db, "courses", courseId, "lessons"), {
-      title,
-      description,
-      videoUrl: null,
-      order: lessons.length + 1,
+  const deleteLesson = async (lessonId) => {
+    if (!window.confirm("Delete lesson permanently?")) return;
+    await deleteDoc(doc(db, "courses", courseId, "lessons", lessonId));
+    reloadAll();
+  };
+
+  /* ======================================================
+     PDF MATERIALS
+  ====================================================== */
+  const uploadPDF = async (file) => {
+    if (!file || file.type !== "application/pdf") {
+      return alert("Only PDF files allowed");
+    }
+
+    const fileUrl = await uploadFileToCloudinary(file);
+
+    await addDoc(collection(db, "courses", courseId, "materials"), {
+      name: file.name,
+      fileUrl,
+      published: true,
       createdAt: serverTimestamp(),
     });
 
-    setTitle("");
-    setDescription("");
-
-    const snap = await getDocs(
-      query(
-        collection(db, "courses", courseId, "lessons"),
-        orderBy("order", "asc")
-      )
-    );
-
-    setLessons(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    reloadAll();
   };
 
+  const toggleMaterial = async (id, published) => {
+    await updateDoc(
+      doc(db, "courses", courseId, "materials", id),
+      { published: !published }
+    );
+    reloadAll();
+  };
+
+  const deleteMaterial = async (id) => {
+    if (!window.confirm("Delete this PDF?")) return;
+    await deleteDoc(doc(db, "courses", courseId, "materials", id));
+    reloadAll();
+  };
+
+  /* ======================================================
+     ASSIGNMENTS
+  ====================================================== */
+  const createAssignment = async () => {
+    if (!assignmentForm.title.trim())
+      return alert("Assignment title required");
+
+    await addDoc(collection(db, "courses", courseId, "assignments"), {
+      ...assignmentForm,
+      published: false,
+      createdAt: serverTimestamp(),
+    });
+
+    setAssignmentForm({ title: "", description: "", dueDate: "" });
+    reloadAll();
+  };
+
+  const toggleAssignment = async (id, published) => {
+    await updateDoc(
+      doc(db, "courses", courseId, "assignments", id),
+      { published: !published }
+    );
+    reloadAll();
+  };
+
+  const deleteAssignment = async (id) => {
+    if (!window.confirm("Delete assignment?")) return;
+    await deleteDoc(doc(db, "courses", courseId, "assignments", id));
+    reloadAll();
+  };
+
+  /* ======================================================
+     RENDER
+  ====================================================== */
   if (loading) return <Loader />;
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-            <h1 className="text-2xl font-bold mb-1">{course.title}</h1>
-            <p className="text-gray-500">{course.description}</p>
+    <div className="flex min-h-screen bg-gray-50">
 
-            <span
-            className={`inline-block mt-2 text-xs px-2 py-1 rounded ${
-                course.status === "published"
-                ? "bg-green-100 text-green-700"
-                : "bg-yellow-100 text-yellow-700"
-            }`}
-            >
+      {/* ================= SIDEBAR ================= */}
+      <aside className="w-72 bg-white border-r p-6 space-y-6">
+        <h2 className="text-lg font-bold">Instructor Studio</h2>
+
+        <div>
+          <p className="text-sm text-gray-500">Course</p>
+          <p className="font-medium">{course.title}</p>
+          <span className="text-xs px-2 py-1 rounded bg-gray-200">
             {course.status}
-            </span>
+          </span>
         </div>
 
         <button
-            onClick={async () => {
-            const newStatus =
-                course.status === "published" ? "draft" : "published";
-
-            await updateDoc(doc(db, "courses", course.id), {
-                status: newStatus,
-            });
-
-            setCourse((prev) => ({ ...prev, status: newStatus }));
-            }}
-            className={`px-4 py-2 rounded text-white ${
+          onClick={toggleCourseStatus}
+          className={`w-full py-2 rounded text-white ${
             course.status === "published"
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-indigo-600 hover:bg-indigo-500"
-            }`}
+              ? "bg-red-500"
+              : "bg-indigo-600"
+          }`}
         >
-            {course.status === "published"
+          {course.status === "published"
             ? "Unpublish Course"
             : "Publish Course"}
         </button>
-        </div>
 
+        <nav className="space-y-2 pt-4">
+          <TabButton tab="lessons" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <TabButton tab="materials" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <TabButton tab="assignments" activeTab={activeTab} setActiveTab={setActiveTab} />
+        </nav>
+      </aside>
 
-      {/* ADD LESSON */}
-      <div className="bg-white p-6 rounded-xl shadow mb-8">
-        <h2 className="font-semibold mb-4">Add Lesson</h2>
+      {/* ================= MAIN ================= */}
+      <main className="flex-1 p-10 overflow-y-auto">
 
-        <form onSubmit={addLesson} className="space-y-4">
-          <input
-            placeholder="Lesson title"
-            className="w-full border p-3 rounded"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
+        {/* ---------- LESSONS ---------- */}
+        {activeTab === "lessons" && (
+          <Section title="Lessons & Videos">
+            <EditorInput
+              label="Lesson Title"
+              value={lessonForm.title}
+              onChange={v => setLessonForm(p => ({ ...p, title: v }))}
+            />
+            <EditorTextarea
+              label="Lesson Description"
+              value={lessonForm.description}
+              onChange={v => setLessonForm(p => ({ ...p, description: v }))}
+            />
+            <PrimaryButton onClick={createLesson}>Add Lesson</PrimaryButton>
 
-          <textarea
-            placeholder="Lesson description"
-            className="w-full border p-3 rounded"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
+            <Divider />
 
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-500">
-            Add Lesson
-          </button>
-        </form>
-      </div>
-
-      {/* LESSON LIST */}
-      <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="font-semibold mb-4">Lessons</h2>
-
-        {lessons.length === 0 && (
-          <p className="text-gray-500">No lessons yet.</p>
+            {lessons.map(l => (
+              <LessonCard
+                key={l.id}
+                lesson={l}
+                uploading={uploadingLessonId === l.id}
+                onVideoUpload={uploadLessonVideo}
+                onUpdate={updateLesson}
+                onDelete={deleteLesson}
+              />
+            ))}
+          </Section>
         )}
 
-        <ul className="space-y-4">
-          {lessons.map((lesson) => (
-            <li
-              key={lesson.id}
-              className="border p-4 rounded flex justify-between items-center"
-            >
-              <div>
-                <h3 className="font-medium">
-                  {lesson.order}. {lesson.title}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {lesson.description}
-                </p>
+        {/* ---------- MATERIALS ---------- */}
+        {activeTab === "materials" && (
+          <Section title="PDF Resources">
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={e => uploadPDF(e.target.files[0])}
+            />
 
-                {lesson.videoUrl && (
-                  <p className="text-xs text-green-600 mt-1">
-                    🎬 Video uploaded
-                  </p>
-                )}
-              </div>
+            <Divider />
 
-              <div className="flex flex-col gap-1">
-                <input
-                  type="file"
-                  accept="video/*"
-                  disabled={uploadingLessonId === lesson.id}
-                  onChange={(e) =>
-                    handleVideoUpload(
-                      lesson.id,
-                      e.target.files[0]
-                    )
-                  }
-                />
+            {materials.map(m => (
+              <Row key={m.id}>
+                <span>📄 {m.name}</span>
+                <div className="flex gap-2">
+                  <SecondaryButton onClick={() => toggleMaterial(m.id, m.published)}>
+                    {m.published ? "Unpublish" : "Publish"}
+                  </SecondaryButton>
+                  <DangerButton onClick={() => deleteMaterial(m.id)}>
+                    Delete
+                  </DangerButton>
+                </div>
+              </Row>
+            ))}
+          </Section>
+        )}
 
-                {uploadingLessonId === lesson.id && (
-                  <span className="text-xs text-gray-400">
-                    Uploading...
-                  </span>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
+        {/* ---------- ASSIGNMENTS ---------- */}
+        {activeTab === "assignments" && (
+          <Section title="Assignments">
+            <EditorInput
+              label="Title"
+              value={assignmentForm.title}
+              onChange={v => setAssignmentForm(p => ({ ...p, title: v }))}
+            />
+            <EditorTextarea
+              label="Description"
+              value={assignmentForm.description}
+              onChange={v => setAssignmentForm(p => ({ ...p, description: v }))}
+            />
+            <EditorInput
+              label="Due Date"
+              type="date"
+              value={assignmentForm.dueDate}
+              onChange={v => setAssignmentForm(p => ({ ...p, dueDate: v }))}
+            />
+            <PrimaryButton onClick={createAssignment}>
+              Add Assignment
+            </PrimaryButton>
+
+            <Divider />
+
+            {assignments.map(a => (
+              <Row key={a.id}>
+                <span>📝 {a.title}</span>
+                <div className="flex gap-2">
+                  <SecondaryButton onClick={() => toggleAssignment(a.id, a.published)}>
+                    {a.published ? "Unpublish" : "Publish"}
+                  </SecondaryButton>
+                  <DangerButton onClick={() => deleteAssignment(a.id)}>
+                    Delete
+                  </DangerButton>
+                </div>
+              </Row>
+            ))}
+          </Section>
+        )}
+
+      </main>
+    </div>
+  );
+}
+
+/* ======================================================
+   SMALL UI COMPONENTS
+====================================================== */
+
+function TabButton({ tab, activeTab, setActiveTab }) {
+  return (
+    <button
+      onClick={() => setActiveTab(tab)}
+      className={`w-full text-left px-3 py-2 rounded ${
+        activeTab === tab
+          ? "bg-indigo-600 text-white"
+          : "hover:bg-gray-100"
+      }`}
+    >
+      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+    </button>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow space-y-4">
+      <h2 className="text-xl font-semibold">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Divider() {
+  return <hr className="my-6" />;
+}
+
+function Row({ children }) {
+  return (
+    <div className="flex justify-between items-center border p-3 rounded mb-2">
+      {children}
+    </div>
+  );
+}
+
+function LessonCard({ lesson, uploading, onVideoUpload, onUpdate, onDelete }) {
+  return (
+    <div className="border rounded p-4 space-y-2">
+      <input
+        className="font-medium w-full"
+        defaultValue={lesson.title}
+        onBlur={e => onUpdate(lesson.id, "title", e.target.value)}
+      />
+      <textarea
+        className="w-full text-sm text-gray-600"
+        defaultValue={lesson.description}
+        onBlur={e => onUpdate(lesson.id, "description", e.target.value)}
+      />
+
+      <div className="flex gap-2">
+        <label className="bg-indigo-600 text-white px-3 py-1 rounded cursor-pointer">
+          Upload / Replace Video
+          <input
+            hidden
+            type="file"
+            accept="video/*"
+            onChange={e => onVideoUpload(lesson.id, e.target.files[0])}
+          />
+        </label>
+
+        <button
+          onClick={() => onDelete(lesson.id)}
+          className="bg-red-500 text-white px-3 py-1 rounded"
+        >
+          Delete
+        </button>
+
+        {uploading && <span className="text-xs">Uploading…</span>}
       </div>
     </div>
   );
 }
+
+function EditorInput({ label, type = "text", value, onChange }) {
+  return (
+    <div>
+      <label className="text-sm text-gray-600">{label}</label>
+      <input
+        type={type}
+        className="w-full border p-2 rounded"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function EditorTextarea({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="text-sm text-gray-600">{label}</label>
+      <textarea
+        className="w-full border p-2 rounded"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+const PrimaryButton = ({ children, onClick }) => (
+  <button onClick={onClick} className="bg-indigo-600 text-white px-4 py-2 rounded">
+    {children}
+  </button>
+);
+
+const SecondaryButton = ({ children, onClick }) => (
+  <button onClick={onClick} className="border px-3 py-1 rounded">
+    {children}
+  </button>
+);
+
+const DangerButton = ({ children, onClick }) => (
+  <button onClick={onClick} className="bg-red-500 text-white px-3 py-1 rounded">
+    {children}
+  </button>
+);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { auth, db } from "../../firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import { uploadImageToCloudinary } from "../../utils/cloudinaryUpload";
+import { uploadImageToCloudinary } from "../../utils/cloudinary";
 
 export default function ProfileHeader({ user }) {
   const isOwner = auth.currentUser?.uid === user.uid;
