@@ -11,6 +11,10 @@ import {
 export default function EducatorProfile({ user }) {
   const navigate = useNavigate();
 
+  if (user.role !== "educator") {
+    return null;
+  }
+
   const [courses, setCourses] = useState([]);
   const [stats, setStats] = useState({
     totalCourses: 0,

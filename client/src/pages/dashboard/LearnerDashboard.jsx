@@ -23,7 +23,7 @@ export default function LearnerDashboard() {
             View courses you are enrolled in and track progress.
           </p>
           <button
-            onClick={() => navigate("/learner/courses")}
+            onClick={() => navigate("/courses")}
             className="text-indigo-600 font-medium hover:underline"
           >
             Go to My Learning →
@@ -51,7 +51,7 @@ export default function LearnerDashboard() {
             Track approval status of your enrollment requests.
           </p>
           <button
-            onClick={() => navigate("/learner/requests")}
+            onClick={() => navigate("/my-enrollments")}
             className="text-indigo-600 font-medium hover:underline"
           >
             View Requests →

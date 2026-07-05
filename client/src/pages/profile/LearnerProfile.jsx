@@ -10,8 +10,12 @@ import {
   getDoc,
 } from "firebase/firestore";
 
+
 export default function LearnerProfile({ user }) {
   const navigate = useNavigate();
+  if (!user || user.role !== "learner") {
+    return null;
+  }
 
   const [enrollments, setEnrollments] = useState([]);
   const [courseProgress, setCourseProgress] = useState({});
@@ -19,14 +23,15 @@ export default function LearnerProfile({ user }) {
 
   useEffect(() => {
     const loadLearnerData = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!user?.uid) return;
+      const uid = user.uid;
+
 
       // 🔹 Load approved enrollments
       const enrollSnap = await getDocs(
         query(
           collection(db, "enrollments"),
-          where("learnerId", "==", currentUser.uid),
+          where("learnerId", "==", uid),
           where("status", "==", "approved")
         )
       );
@@ -41,7 +46,7 @@ export default function LearnerProfile({ user }) {
         const progressRef = doc(
           db,
           "progress",
-          `${enroll.courseId}_${currentUser.uid}`
+          `${enroll.courseId}_${uid}`
         );
         const progressSnap = await getDoc(progressRef);
 

@@ -5,7 +5,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import Loader from "../../components/Loader";
 
 import ProfileHeader from "./ProfileHeader";
-import AboutSection from "./AboutSection";
+import ProfileAbout from "./ProfileAbout";
 import LearnerProfile from "./LearnerProfile";
 import EducatorProfile from "./EducatorProfile";
 import ActivityFeed from "./ActivityFeed";
@@ -16,6 +16,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
 
+  // 🔹 1️⃣ Load profile (runs once)
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) {
@@ -43,6 +44,17 @@ export default function Profile() {
     return () => unsub();
   }, [navigate]);
 
+  // 🔹 2️⃣ React to userData changes (THIS is the key)
+  useEffect(() => {
+    if (!userData) return;
+
+    console.log("ROLE DEBUG:", {
+      role: userData.role,
+      isLearner: userData.role === "learner",
+      isEducator: userData.role === "educator",
+    });
+  }, [userData]);
+
   if (loading || !userData) return <Loader />;
 
   const isLearner = userData.role === "learner";
@@ -51,7 +63,7 @@ export default function Profile() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
       <ProfileHeader user={userData} />
-      <AboutSection user={userData} />
+      <ProfileAbout user={userData} />
       {isLearner && <LearnerProfile user={userData} />}
       {isEducator && <EducatorProfile user={userData} />}
       <ActivityFeed user={userData} />
