@@ -22,30 +22,30 @@ export default function Footer() {
         <div>
           <h4 className="text-lg font-semibold mb-3 text-white">Product</h4>
           <ul className="text-sm space-y-2">
-            <li><a href="#" className="hover:text-white">Features</a></li>
-            <li><a href="#" className="hover:text-white">Pricing</a></li>
-            <li><a href="#" className="hover:text-white">Testimonials</a></li>
-            <li><a href="#" className="hover:text-white">Integrations</a></li>
+            <li><a href="#features" className="hover:text-white">Features</a></li>
+            <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
+            <li><a href="#testimonials" className="hover:text-white">Testimonials</a></li>
+            <li><a href="#integrations" className="hover:text-white">Integrations</a></li>
           </ul>
         </div>
 
         <div>
           <h4 className="text-lg font-semibold mb-3 text-white">Company</h4>
           <ul className="text-sm space-y-2">
-            <li><a href="#" className="hover:text-white">About Us</a></li>
-            <li><a href="#" className="hover:text-white">Careers</a></li>
-            <li><a href="#" className="hover:text-white">Contact</a></li>
-            <li><a href="#" className="hover:text-white">Blog</a></li>
+            <li><a href="#about" className="hover:text-white">About Us</a></li>
+            <li><a href="/#careers" className="hover:text-white">Careers</a></li>
+            <li><a href="/#contact" className="hover:text-white">Contact</a></li>
+            <li><a href="/#blog" className="hover:text-white">Blog</a></li>
           </ul>
         </div>
 
         <div>
           <h4 className="text-lg font-semibold mb-3 text-white">Support</h4>
           <ul className="text-sm space-y-2">
-            <li><a href="#" className="hover:text-white">Help Center</a></li>
-            <li><a href="#" className="hover:text-white">Terms of Service</a></li>
-            <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
-            <li><a href="#" className="hover:text-white">Status</a></li>
+            <li><a href="/#help" className="hover:text-white">Help Center</a></li>
+            <li><a href="/#terms" className="hover:text-white">Terms of Service</a></li>
+            <li><a href="/#privacy" className="hover:text-white">Privacy Policy</a></li>
+            <li><a href="/#status" className="hover:text-white">Status</a></li>
           </ul>
         </div>
       </div>

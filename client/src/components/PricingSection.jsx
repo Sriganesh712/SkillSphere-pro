@@ -73,7 +73,7 @@ export default function PricingSection() {
   };
 
   return (
-    <section className="py-20 px-6 bg-white text-gray-800">
+    <section id="pricing" className="bg-white py-20">
       <div className="max-w-6xl mx-auto text-center mb-12">
         <h2 className="text-4xl font-bold mb-4">Flexible Pricing for Everyone</h2>
         <p className="text-lg text-gray-600">Choose the plan that fits your role and scale.</p>

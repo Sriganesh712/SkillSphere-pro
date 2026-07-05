@@ -3,7 +3,7 @@ import aboutImg from "../assets/Mehra.jpg"; // or .png, .webp
 
 export default function AboutSection() {
   return (
-    <section className="bg-gradient-to-b from-white via-blue-50 to-white py-20 px-6">
+    <section id="about" className="bg-gradient-to-b from-white via-blue-50 to-white py-20 px-6">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
         <div className="order-2 md:order-1">
           <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">

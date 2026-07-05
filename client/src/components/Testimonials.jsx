@@ -24,7 +24,7 @@ const testimonials = [
 
 export default function TestimonialSection() {
   return (
-    <section className="py-20 bg-white text-gray-800">
+    <section id= "testimonials" className="py-20 bg-white text-gray-800">
       <div className="max-w-6xl mx-auto px-6">
         <h2 className="text-4xl font-bold text-center mb-12">
           What Our Users Say
